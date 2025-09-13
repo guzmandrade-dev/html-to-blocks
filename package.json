@@ -9,6 +9,6 @@
   "author": "",
   "license": "GPL-3.0",
   "dependencies": {
-    "puppeteer": "*"
+    "@playwright/test": "*"
   }
 }
