@@ -39,21 +39,10 @@ async function run() {
     });
     await autoScroll(page);
 
-    // 404 don't redirect to a new page, instead, body has id of `error`.
-    let bodyError = await page
-        .locator("body#error")
-        .getAttribute("id")
-        .catch(() => {
-            // do nothing but continue, this probably means the selector was not found, which is good.
-        });
-    if (!bodyError) {
-        // if we switched languages but ended up on the homepage of the new language, don't output anything.
-        if (!backToHome || process.argv[3] === undefined) {
-            let source = await page.content();
-            // We append the source URL to the body since we want to retrieve it later to build the `slug`.
-            console.log(source.replace("</body>", '<span data-origin-url="' + page.url() + '" /></body>'));
-        }
-    }
+    let source = await page.content();
+    // We append the source URL to the body since we want to retrieve it later to build the `slug`.
+    console.log(source.replace("</body>", '<span data-origin-url="' + page.url() + '" /></body>'));
+    
     await browser.close();
 }
 
