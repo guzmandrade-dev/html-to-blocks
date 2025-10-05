@@ -1,6 +1,35 @@
 const { chromium } = require("@playwright/test");
 
 /**
+ * Parse command line arguments
+ * @returns {Object} Parsed arguments
+ */
+function parseArgs() {
+    const args = process.argv.slice(2);
+    const parsed = {
+        url: null,
+        language: null,
+        selector: 'body'
+    };
+
+    // First argument should be the URL
+    if (args.length > 0 && !args[0].startsWith('--')) {
+        parsed.url = args[0];
+    }
+
+    // Parse named arguments
+    args.forEach(arg => {
+        if (arg.startsWith('--language=')) {
+            parsed.language = arg.split('=')[1];
+        } else if (arg.startsWith('--selector=')) {
+            parsed.selector = arg.split('=')[1];
+        }
+    });
+
+    return parsed;
+}
+
+/**
  * Runs the function to launch a Playwright browser, open a new page,
  * navigate to a specific URL, scroll to the bottom of the page,
  * retrieve the page source, and close the browser.
@@ -8,6 +37,13 @@ const { chromium } = require("@playwright/test");
  * @return {Promise<void>}
  */
 async function run() {
+    const { url, language, selector } = parseArgs();
+
+    if (!url) {
+        console.error('Usage: node getRemoteHTML.js <url> [--language=LANGUAGE] [--selector=SELECTOR]');
+        process.exit(1);
+    }
+
     const browser = await chromium.launch({
         headless: true,
     });
@@ -18,18 +54,18 @@ async function run() {
     const page = await context.newPage();
 
     // go to the main url
-    await page.goto(process.argv[2]);
+    await page.goto(url);
 
     let backToHome = false;
 
     // change language if specified.
-    if (process.argv[3]) {
+    if (language) {
         let newLangURL = await page
-            .locator("a[data-lang=" + process.argv[3] + "]")
+            .locator("a[data-lang=" + language + "]")
             .getAttribute("href")
             .catch(() => "/");
         let jump_url = new URL(page.url());
-        backToHome = newLangURL === "/" + process.argv[3] && "https://www.domain.com" !== process.argv[2];
+        backToHome = newLangURL === "/" + language && "https://www.domain.com" !== url;
         await page.goto(jump_url.origin + newLangURL);
     }
 
@@ -40,7 +76,7 @@ async function run() {
     await autoScroll(page);
 
     // Apply inline styles to all elements based on computed styles from page stylesheets
-    await page.evaluate(() => {
+    await page.evaluate((selector) => {
         // Get all stylesheets from the current page
         const pageStylesheets = Array.from(document.styleSheets).filter(sheet => {
             try {
@@ -96,7 +132,7 @@ async function run() {
             return value !== defaultValue;
         }
 
-        // Apply inline styles to all elements in the body
+        // Apply inline styles to all elements in the target element
         function applyInlineStyles(element) {
             const styles = getPageStyles(element);
             const styleString = Object.entries(styles)
@@ -111,16 +147,19 @@ async function run() {
             Array.from(element.children).forEach(child => applyInlineStyles(child));
         }
 
-        // Start with body element
-        const body = document.querySelector('body');
-        if (body) {
-            applyInlineStyles(body);
+        // Start with the selected element
+        const targetElement = document.querySelector(selector);
+        if (targetElement) {
+            applyInlineStyles(targetElement);
         }
-    });
+    }, selector);
 
-    let bodyContent = await page.locator('body').innerHTML();
-    // We append the source URL to the body since we want to retrieve it later to build the `slug`.
-    console.log('<body>' + bodyContent.replace("</body>", '<span data-origin-url="' + page.url() + '" /></body>') + '</body>');
+    // Get the content of the selected element
+    let elementContent = await page.locator(selector).innerHTML();
+    const tagName = await page.locator(selector).evaluate(el => el.tagName.toLowerCase());
+    
+    // We append the source URL to the element since we want to retrieve it later to build the `slug`.
+    console.log(`<${tagName}>` + elementContent.replace(`</${tagName}>`, `<span data-origin-url="${page.url()}" /></${tagName}>`) + `</${tagName}>`);
     
     await browser.close();
 }
