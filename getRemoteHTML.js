@@ -39,9 +39,88 @@ async function run() {
     });
     await autoScroll(page);
 
-    let source = await page.content();
+    // Apply inline styles to all elements based on computed styles from page stylesheets
+    await page.evaluate(() => {
+        // Get all stylesheets from the current page
+        const pageStylesheets = Array.from(document.styleSheets).filter(sheet => {
+            try {
+                // Only include stylesheets from the same origin or inline styles
+                return !sheet.href || sheet.href.startsWith(window.location.origin);
+            } catch (e) {
+                return false;
+            }
+        });
+
+        // Function to get styles that come from page stylesheets (not browser defaults)
+        function getPageStyles(element) {
+            const computedStyles = window.getComputedStyle(element);
+            const pageStyles = {};
+            
+            // Properties to check (common CSS properties that are likely to be set by page styles)
+            const relevantProperties = [
+                'color', 'background-color', 'background-image', 'background', 'font-family', 'font-size', 
+                'font-weight', 'font-style', 'text-align', 'text-decoration', 'line-height',
+                'margin', 'margin-top', 'margin-right', 'margin-bottom', 'margin-left',
+                'padding', 'padding-top', 'padding-right', 'padding-bottom', 'padding-left',
+                'border', 'border-top', 'border-right', 'border-bottom', 'border-left',
+                'border-color', 'border-width', 'border-style', 'border-radius',
+                'width', 'height', 'max-width', 'max-height', 'min-width', 'min-height',
+                'display', 'position', 'top', 'right', 'bottom', 'left', 'z-index',
+                'float', 'clear', 'overflow', 'visibility', 'opacity',
+                'flex', 'flex-direction', 'flex-wrap', 'justify-content', 'align-items',
+                'grid', 'grid-template', 'grid-gap', 'transform', 'transition'
+            ];
+
+            relevantProperties.forEach(prop => {
+                const value = computedStyles.getPropertyValue(prop);
+                if (value && value !== 'initial' && value !== 'inherit' && value !== 'unset') {
+                    // Check if this style likely comes from a stylesheet (not browser default)
+                    if (hasCustomStyle(element, prop, value)) {
+                        pageStyles[prop] = value;
+                    }
+                }
+            });
+
+            return pageStyles;
+        }
+
+        // Helper function to determine if a style is likely from page CSS (not browser default)
+        function hasCustomStyle(element, property, value) {
+            // Create a temporary element to compare against browser defaults
+            const temp = document.createElement(element.tagName.toLowerCase());
+            temp.style.display = 'none';
+            document.body.appendChild(temp);
+            const defaultValue = window.getComputedStyle(temp).getPropertyValue(property);
+            document.body.removeChild(temp);
+            
+            return value !== defaultValue;
+        }
+
+        // Apply inline styles to all elements in the body
+        function applyInlineStyles(element) {
+            const styles = getPageStyles(element);
+            const styleString = Object.entries(styles)
+                .map(([prop, value]) => `${prop}: ${value}`)
+                .join('; ');
+            
+            if (styleString) {
+                element.setAttribute('style', styleString);
+            }
+
+            // Recursively apply to children
+            Array.from(element.children).forEach(child => applyInlineStyles(child));
+        }
+
+        // Start with body element
+        const body = document.querySelector('body');
+        if (body) {
+            applyInlineStyles(body);
+        }
+    });
+
+    let bodyContent = await page.locator('body').innerHTML();
     // We append the source URL to the body since we want to retrieve it later to build the `slug`.
-    console.log(source.replace("</body>", '<span data-origin-url="' + page.url() + '" /></body>'));
+    console.log('<body>' + bodyContent.replace("</body>", '<span data-origin-url="' + page.url() + '" /></body>') + '</body>');
     
     await browser.close();
 }
