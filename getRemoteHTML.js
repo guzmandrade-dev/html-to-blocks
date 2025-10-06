@@ -56,8 +56,6 @@ async function run() {
     // go to the main url
     await page.goto(url);
 
-    let backToHome = false;
-
     // change language if specified.
     if (language) {
         let newLangURL = await page
@@ -65,7 +63,6 @@ async function run() {
             .getAttribute("href")
             .catch(() => "/");
         let jump_url = new URL(page.url());
-        backToHome = newLangURL === "/" + language && "https://www.domain.com" !== url;
         await page.goto(jump_url.origin + newLangURL);
     }
 
@@ -78,7 +75,7 @@ async function run() {
     // Apply inline styles to all elements based on computed styles from page stylesheets
     await page.evaluate((selector) => {
         // Get all stylesheets from the current page
-        const pageStylesheets = Array.from(document.styleSheets).filter(sheet => {
+        Array.from(document.styleSheets).filter(sheet => {
             try {
                 // Only include stylesheets from the same origin or inline styles
                 return !sheet.href || sheet.href.startsWith(window.location.origin);
