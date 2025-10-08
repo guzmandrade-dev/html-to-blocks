@@ -1,0 +1,3 @@
+#html2blocks-result { display: none; }
+#html2blocks-form + #html2blocks-result { display: block; }
+#html2blocks-fragment code { white-space: pre-wrap; }
