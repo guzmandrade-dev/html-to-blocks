@@ -5,9 +5,12 @@
   "main": "getRemoteHTML.js",
   "license": "MIT",
   "scripts": {
-    "fetch": "node getRemoteHTML.js"
+    "start": "node server.js",
+    "debug": "node --inspect server.js"
   },
   "dependencies": {
-    "@playwright/test": "^1.48.0"
+    "@playwright/test": "^1.48.0",
+    "cors": "^2.8.5",
+    "express": "^4.19.2"
   }
 }

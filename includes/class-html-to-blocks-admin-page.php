@@ -4,10 +4,35 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 class HTML2Blocks_Admin {
-
 	public function hooks() {
 		add_action( 'admin_menu', array( $this, 'add_page' ) );
 		add_action( 'admin_enqueue_scripts', array( $this, 'assets' ) );
+		add_action( 'admin_init', array( $this, 'register_settings' ) );
+	}
+
+	public function register_settings() {
+		register_setting(
+			'html2blocks',
+			'html2blocks_service_url',
+			array(
+				'type'              => 'string',
+				'sanitize_callback' => 'esc_url_raw',
+				'default'           => 'http://host.docker.internal:3001/fetch',
+			)
+		);
+
+		add_settings_section( 'html2blocks_main', 'Service Settings', function () {}, 'html2blocks' );
+
+		add_settings_field(
+			'html2blocks_service_url',
+			'Service URL',
+			function () {
+				$val = esc_url( get_option( 'html2blocks_service_url', 'http://host.docker.internal:3001/fetch' ) );
+				echo '<input type="url" class="regular-text" name="html2blocks_service_url" value="' . $val . '" placeholder="http://host.docker.internal:3001/fetch" />';
+			},
+			'html2blocks',
+			'html2blocks_main'
+		);
 	}
 
 	public function add_page() {
@@ -40,7 +65,15 @@ class HTML2Blocks_Admin {
 		?>
 		<div class="wrap">
 			<h1>HTML To Blocks Fetcher</h1>
-			<p>Fetch remote HTML fragment with computed inline styles.</p>
+
+			<form method="post" action="options.php" style="margin-bottom:20px;">
+				<?php
+					settings_fields( 'html2blocks' );
+					do_settings_sections( 'html2blocks' );
+					submit_button( 'Save Settings' );
+				?>
+			</form>
+
 			<form id="html2blocks-form">
 				<table class="form-table">
 					<tr>
@@ -56,16 +89,13 @@ class HTML2Blocks_Admin {
 						<td><input type="text" id="h2b-selector" value="body" /></td>
 					</tr>
 				</table>
-				<p>
-					<button class="button button-primary" type="submit">Fetch</button>
-				</p>
+				<p><button class="button button-primary" type="submit">Fetch</button></p>
 			</form>
+
 			<div id="html2blocks-result" style="margin-top:20px;">
 				<h2>Result</h2>
 				<div id="html2blocks-fragment" style="border:1px solid #ccd0d4;padding:12px;background:#fff; max-height:400px; overflow:auto;"></div>
-				<p>
-					<button id="html2blocks-copy" class="button">Copy HTML</button>
-				</p>
+				<p><button id="html2blocks-copy" class="button">Copy HTML</button></p>
 			</div>
 		</div>
 		<?php

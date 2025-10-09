@@ -4,72 +4,45 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 class HTML2Blocks_Runner {
-
 	public function fetch( $url, $language = null, $selector = 'body' ) {
-		$url      = esc_url_raw( $url );
-		$language = $language ? preg_replace( '/[^a-zA-Z0-9_-]/', '', $language ) : '';
-		$selector = $selector ? sanitize_text_field( $selector ) : 'body';
-
-		if ( empty( $url ) ) {
-			return new WP_Error( 'html2blocks_invalid_url', 'Invalid URL', array( 'status' => 400 ) );
+		$endpoint = get_option( 'html2blocks_service_url', 'http://host.docker.internal:3001/fetch' );
+		if ( empty( $endpoint ) ) {
+			return new WP_Error( 'html2blocks_no_service', 'Service URL not configured', array( 'status' => 500 ) );
 		}
 
-		if ( ! file_exists( HTML2BLOCKS_NODE_PATH ) ) {
-			return new WP_Error( 'html2blocks_missing_node', 'Node script not found', array( 'status' => 500 ) );
-		}
-
-		$node = $this->detect_node_binary();
-		if ( ! $node ) {
-			return new WP_Error( 'html2blocks_node_not_found', 'Node.js not available on server', array( 'status' => 500 ) );
-		}
-
-		$cmd = escapeshellcmd( $node ) . ' ' . escapeshellarg( HTML2BLOCKS_NODE_PATH )
-			. ' --url=' . escapeshellarg( $url )
-			. ( $language ? ' --language=' . escapeshellarg( $language ) : '' )
-			. ' --selector=' . escapeshellarg( $selector );
-
-		$descriptor_spec = array(
-			1 => array( 'pipe', 'w' ),
-			2 => array( 'pipe', 'w' ),
+		$body = array(
+			'url'      => esc_url_raw( $url ),
+			'selector' => $selector ?: 'body',
 		);
-		$process        = proc_open( $cmd, $descriptor_spec, $pipes, HTML2BLOCKS_PATH );
-		if ( ! is_resource( $process ) ) {
-			return new WP_Error( 'html2blocks_exec_fail', 'Failed to start headless browser', array( 'status' => 500 ) );
+		if ( $language ) {
+			$body['language'] = preg_replace( '/[^a-zA-Z0-9_-]/', '', $language );
 		}
 
-		$stdout = stream_get_contents( $pipes[1] );
-		fclose( $pipes[1] );
-		$stderr = stream_get_contents( $pipes[2] );
-		fclose( $pipes[2] );
-		$exit = proc_close( $process );
+		$resp = wp_remote_post(
+			$endpoint,
+			array(
+				'timeout' => 60,
+				'headers' => array( 'Content-Type' => 'application/json' ),
+				'body'    => wp_json_encode( $body ),
+			)
+		);
 
-		if ( $exit !== 0 ) {
-			return new WP_Error( 'html2blocks_process_error', 'Scrape failed: ' . trim( $stderr ), array( 'status' => 500 ) );
+		if ( is_wp_error( $resp ) ) {
+			return new WP_Error( 'html2blocks_http', $resp->get_error_message(), array( 'status' => 500 ) );
+		}
+
+		$code = wp_remote_retrieve_response_code( $resp );
+		$html = wp_remote_retrieve_body( $resp );
+
+		if ( $code !== 200 ) {
+			return new WP_Error( 'html2blocks_bad_status', 'Service error: ' . $html, array( 'status' => 500 ) );
 		}
 
 		return array(
-			'html'      => $stdout,
+			'html'      => $html,
 			'sourceUrl' => $url,
-			'selector'  => $selector,
+			'selector'  => $body['selector'],
 			'language'  => $language,
 		);
-	}
-
-	private function detect_node_binary() {
-		// Basic detection; optionally allow filter override
-		$candidates = array(
-			'/usr/bin/node',
-			'/usr/local/bin/node',
-			'C:\\Program Files\\nodejs\\node.exe',
-			'C:\\nodejs\\node.exe',
-			'node',
-		);
-		foreach ( $candidates as $cand ) {
-			$which = $cand === 'node' ? trim( shell_exec( 'which node 2>/dev/null' ) ) : $cand;
-			if ( $which && is_executable( $which ) ) {
-				return $which;
-			}
-		}
-		return apply_filters( 'html2blocks_node_binary', null );
 	}
 }
