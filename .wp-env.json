@@ -2,5 +2,8 @@
     "$schema": "https://schemas.wp.org/trunk/wp-env.json",
     "mappings": {
         "wp-content/plugins/html-to-blocks": "."
+    },
+    "lifecycleScripts": {
+        "afterStart": "npm start --prefix node"
     }
 }
