@@ -3,6 +3,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+use Alley\WP\Block_Converter\Block_Converter; // from composer
+
 class HTML2Blocks_REST {
 
 	public function register() {
@@ -50,6 +52,30 @@ class HTML2Blocks_REST {
 			return $result;
 		}
 
-		return new WP_REST_Response( $result, 200 );
+		$html = (string) ( $result['html'] ?? '' );
+
+		// Convert HTML to blocks markup using Block_Converter
+		$blocks_markup = '';
+		if ( class_exists( Block_Converter::class ) ) {
+			try {
+				$converter = new Block_Converter( $html );
+				// Some versions provide convert() returning serialized blocks as string.
+				// If it returns an array, adjust to implode/serialize accordingly.
+				$blocks_markup = $converter->convert();
+			} catch ( \Throwable $e ) {
+				$blocks_markup = '';
+			}
+		}
+
+		return new WP_REST_Response(
+			array(
+				'html'      => $html,
+				'blocks'    => $blocks_markup,
+				'sourceUrl' => $result['sourceUrl'] ?? $url,
+				'selector'  => $result['selector'] ?? $selector,
+				'language'  => $result['language'] ?? $language,
+			),
+			200
+		);
 	}
 }

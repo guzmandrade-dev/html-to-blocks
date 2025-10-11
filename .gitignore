@@ -49,3 +49,4 @@ wp-config.php
 
 /node_modules/
 /node/node_modules/
+/vendor/

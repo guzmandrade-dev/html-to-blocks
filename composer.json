@@ -1,0 +1,15 @@
+{
+  "name": "guzma/html-to-blocks",
+  "description": "Fetch remote HTML and convert to blocks.",
+  "type": "wordpress-plugin",
+  "license": "MIT",
+  "require": {
+    "php": ">=7.4",
+    "alleyinteractive/wp-block-converter": "^0.5 || ^1.0"
+  },
+  "config": {
+    "allow-plugins": {
+      "alleyinteractive/composer-wordpress-autoloader": true
+    }
+  }
+}

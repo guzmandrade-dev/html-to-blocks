@@ -1,13 +1,18 @@
 <?php
 /**
  * Plugin Name: HTML To Blocks Fetcher
- * Description: Fetch remote HTML fragments (with inline computed styles) and integrate into WordPress.
- * Version: 0.1.0
+ * Description: Fetch remote HTML fragments (with inline styles) and convert to blocks.
+ * Version: 0.2.0
  * Author: You
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
+}
+
+$autoload = __DIR__ . '/vendor/autoload.php';
+if ( file_exists( $autoload ) ) {
+	require_once $autoload;
 }
 
 define( 'HTML2BLOCKS_PATH', plugin_dir_path( __FILE__ ) );
