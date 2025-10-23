@@ -5,7 +5,8 @@
   "license": "MIT",
   "require": {
     "php": ">=7.4",
-    "alleyinteractive/wp-block-converter": "^0.5 || ^1.0"
+    "alleyinteractive/wp-block-converter": "^0.5 || ^1.0",
+    "sabberworm/php-css-parser": "^8.5"
   },
   "config": {
     "allow-plugins": {
