@@ -3,7 +3,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-class HTML2Blocks_Runner {
+class HTML_To_Blocks_Runner {
 	public function fetch( $url, $language = null, $selector = 'body' ) {
 		$endpoint = get_option( 'html2blocks_service_url', 'http://host.docker.internal:3001/fetch' );
 		if ( empty( $endpoint ) ) {
@@ -12,7 +12,7 @@ class HTML2Blocks_Runner {
 
 		$body = array(
 			'url'      => esc_url_raw( $url ),
-			'selector' => $selector ?: 'body',
+			'selector' => $selector ?? 'body',
 		);
 		if ( $language ) {
 			$body['language'] = preg_replace( '/[^a-zA-Z0-9_-]/', '', $language );
@@ -34,7 +34,7 @@ class HTML2Blocks_Runner {
 		$code = wp_remote_retrieve_response_code( $resp );
 		$html = wp_remote_retrieve_body( $resp );
 
-		if ( $code !== 200 ) {
+		if ( 200 !== $code ) {
 			return new WP_Error( 'html2blocks_bad_status', 'Service error: ' . $html, array( 'status' => 500 ) );
 		}
 

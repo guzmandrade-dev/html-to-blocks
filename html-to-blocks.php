@@ -26,7 +26,7 @@ require_once __DIR__ . '/includes/class-html-to-blocks-admin-page.php';
 add_action(
 	'plugins_loaded',
 	function () {
-		( new HTML2Blocks_REST() )->register();
+		( new HTML_To_Blocks_REST() )->register();
 		( new HTML2Blocks_Admin() )->hooks();
 	}
 );

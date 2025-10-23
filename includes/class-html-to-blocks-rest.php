@@ -5,7 +5,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 use Alley\WP\Block_Converter\Block_Converter; // from composer
 
-class HTML2Blocks_REST {
+class HTML_To_Blocks_REST {
 
 	public function register() {
 		add_action(
@@ -43,9 +43,9 @@ class HTML2Blocks_REST {
 	public function handle_fetch( WP_REST_Request $req ) {
 		$url      = $req->get_param( 'url' );
 		$language = $req->get_param( 'language' );
-		$selector = $req->get_param( 'selector' ) ?: 'body';
+		$selector = $req->get_param( 'selector' ) ?? 'body';
 
-		$runner = new HTML2Blocks_Runner();
+		$runner = new HTML_To_Blocks_Runner();
 		$result = $runner->fetch( $url, $language, $selector );
 
 		if ( is_wp_error( $result ) ) {
