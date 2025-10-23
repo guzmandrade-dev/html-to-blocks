@@ -3,8 +3,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-use Alley\WP\Block_Converter\Block_Converter; // from composer
-
 class HTML_To_Blocks_REST {
 
 	public function register() {
@@ -56,9 +54,9 @@ class HTML_To_Blocks_REST {
 
 		// Convert HTML to blocks markup using Block_Converter
 		$blocks_markup = '';
-		if ( class_exists( Block_Converter::class ) ) {
+		if ( class_exists( HTML_To_Blocks_Converter::class ) ) {
 			try {
-				$converter = new Block_Converter( $html );
+				$converter = new HTML_To_Blocks_Converter( $html );
 				// Some versions provide convert() returning serialized blocks as string.
 				// If it returns an array, adjust to implode/serialize accordingly.
 				$blocks_markup = $converter->convert();

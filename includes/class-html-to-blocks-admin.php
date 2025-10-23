@@ -3,7 +3,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-class HTML2Blocks_Admin {
+class HTML_To_Blocks_Admin {
 
 	public function hooks() {
 		add_action( 'admin_menu', array( $this, 'add_page' ) );

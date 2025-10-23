@@ -19,14 +19,15 @@ define( 'HTML2BLOCKS_PATH', plugin_dir_path( __FILE__ ) );
 define( 'HTML2BLOCKS_URL', plugin_dir_url( __FILE__ ) );
 define( 'HTML2BLOCKS_NODE_PATH', HTML2BLOCKS_PATH . 'node/getRemoteHTML.js' );
 
+require_once __DIR__ . '/includes/class-html-to-blocks-converter.php';
 require_once __DIR__ . '/includes/class-html-to-blocks-runner.php';
 require_once __DIR__ . '/includes/class-html-to-blocks-rest.php';
-require_once __DIR__ . '/includes/class-html-to-blocks-admin-page.php';
+require_once __DIR__ . '/includes/class-html-to-blocks-admin.php';
 
 add_action(
 	'plugins_loaded',
 	function () {
 		( new HTML_To_Blocks_REST() )->register();
-		( new HTML2Blocks_Admin() )->hooks();
+		( new HTML_To_Blocks_Admin() )->hooks();
 	}
 );
