@@ -28,8 +28,8 @@ class HTML_To_Blocks_Admin {
 			'html2blocks_service_url',
 			'Service URL',
 			function () {
-				$val = esc_url( get_option( 'html2blocks_service_url', 'http://host.docker.internal:3001/fetch' ) );
-				echo '<input type="url" class="regular-text" name="html2blocks_service_url" value="' . $val . '" placeholder="http://host.docker.internal:3001/fetch" />';
+				$val = get_option( 'html2blocks_service_url', 'http://host.docker.internal:3001/fetch' );
+				echo '<input type="url" class="regular-text" name="html2blocks_service_url" value="' . esc_url( $val ) . '" placeholder="http://host.docker.internal:3001/fetch" />';
 			},
 			'html2blocks',
 			'html2blocks_main'
@@ -47,7 +47,7 @@ class HTML_To_Blocks_Admin {
 	}
 
 	public function assets( $hook ) {
-		if ( $hook !== 'tools_page_html2blocks' ) {
+		if ( 'tools_page_html2blocks' !== $hook ) {
 			return;
 		}
 		wp_enqueue_script( 'html2blocks-admin', HTML2BLOCKS_URL . 'assets/admin.js', array( 'wp-api-fetch' ), '0.2.0', true );
