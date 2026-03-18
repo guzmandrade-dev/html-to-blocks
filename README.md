@@ -1,17 +1,45 @@
 # HTML To Blocks (WordPress Plugin)
 
-Fetch remote HTML fragment with computed styles using Playwright.
+Fetches a remote HTML fragment (including computed styles via Playwright) and returns HTML that can be reused in WordPress blocks.
 
-Requirements:
-- Node.js installed on server
-- Run: cd wp-content/plugins/html-to-blocks/node && npm install
+## Requirements
 
-Usage:
-1. Activate plugin
-2. Tools > HTML To Blocks
-3. Enter URL, selector, optional language
-4. Fetch and copy HTML
+- Node.js installed on the server/environment
+- Install Node dependencies for the plugin service:
 
-REST:
-GET /wp-json/html2blocks/v1/fetch?url=...&selector=main&language=es
-Auth: Must be logged-in user with edit_posts.
+```bash
+cd wp-content/plugins/html-to-blocks/node
+npm install
+```
+
+## Local development (`wp-env`)
+
+`.wp-env.json` defines how the local server environment is set up for this plugin.
+
+It includes the setup used to:
+
+1. Parse the target URL with a basic server flow
+2. Produce/output the resulting HTML
+3. Return that HTML to the plugin so it can be copied/used in WordPress blocks
+
+Check the `wp-env` config files in this repository for the exact local service wiring and ports.
+
+## Usage
+
+1. Activate the plugin
+2. Go to **Tools > HTML To Blocks**
+3. Enter:
+   - URL
+   - CSS selector
+   - Optional language
+4. Click fetch and copy the returned HTML
+
+## REST API
+
+**Endpoint**
+
+`GET /wp-json/html2blocks/v1/fetch?url=...&selector=main&language=es`
+
+**Auth**
+
+Must be a logged-in user with `edit_posts` capability.

@@ -3,7 +3,7 @@
  * Plugin Name: HTML To Blocks Fetcher
  * Description: Fetch remote HTML fragments (with inline styles) and convert to blocks.
  * Version: 0.2.0
- * Author: You
+ * Author: h4l9k
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
