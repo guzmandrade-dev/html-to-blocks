@@ -41,9 +41,14 @@ app.post('/fetch', async (req, res) => {
 });
 
 const PORT = process.env.PORT || 3001;
-const server = app.listen(PORT, () => {
+const HOST = (process.env.BIND_HOST || process.env.HOST || '0.0.0.0').trim();
+const displayHost = HOST === '0.0.0.0' ? 'localhost' : HOST;
+
+const server = app.listen(PORT, HOST, () => {
   writePidFile();
-  console.log(`html-to-blocks server listening on http://localhost:${PORT}`);
+  console.log(
+    `html-to-blocks server listening on http://${displayHost}:${PORT} (bound to ${HOST})`
+  );
 });
 
 function shutdown(signal) {

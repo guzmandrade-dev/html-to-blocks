@@ -34,6 +34,17 @@ npm run stop --prefix node
 npm run restart --prefix node
 ```
 
+The Node service accepts these environment variables:
+
+- `PORT` (default: `3001`)
+- `BIND_HOST` (default: `0.0.0.0`)
+
+Example (explicit Docker/WSL-friendly binding):
+
+```bash
+BIND_HOST=0.0.0.0 PORT=3001 npm start --prefix node
+```
+
 `npm run stop --prefix node` is safe to run repeatedly. If the service is already stopped, it exits without failing.
 
 ## Usage
