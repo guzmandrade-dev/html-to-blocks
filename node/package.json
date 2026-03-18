@@ -6,7 +6,9 @@
   "license": "MIT",
   "scripts": {
     "start": "node server.js",
-    "debug": "node --inspect server.js"
+    "debug": "node --inspect server.js",
+    "stop": "node scripts/stop.js",
+    "restart": "npm run stop && npm run start"
   },
   "dependencies": {
     "@playwright/test": "^1.48.0",

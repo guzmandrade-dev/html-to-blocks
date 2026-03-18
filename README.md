@@ -24,6 +24,18 @@ It includes the setup used to:
 
 Check the `wp-env` config files in this repository for the exact local service wiring and ports.
 
+### Node Service Commands
+
+Run from the plugin root:
+
+```bash
+npm start --prefix node
+npm run stop --prefix node
+npm run restart --prefix node
+```
+
+`npm run stop --prefix node` is safe to run repeatedly. If the service is already stopped, it exits without failing.
+
 ## Usage
 
 1. Activate the plugin

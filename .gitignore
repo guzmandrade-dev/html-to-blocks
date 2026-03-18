@@ -49,4 +49,5 @@ wp-config.php
 
 /node_modules/
 /node/node_modules/
+/node/.server.pid
 /vendor/
