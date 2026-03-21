@@ -15,10 +15,30 @@ use Sabberworm\CSS\OutputFormat;
 // Fallback => core/html
 class HTML_To_Blocks_Converter extends Base_Block_Converter {
 	public function __construct( public string $html, public bool $sideload_images = false ) {
+
+		add_filter(
+			'wp_block_converter_document_html',
+			array( $this, 'wp_block_converter_document_html' ),
+			10,
+			2
+		);
 		parent::__construct( $html, $sideload_images );
 
 		// Register a macro to handle <div>.
 		Base_Block_Converter::macro( 'div', array( $this, 'div' ) );
+	}
+	public function wp_block_converter_document_html( string $html, $doc ): string {
+		$processor = new WP_HTML_Tag_Processor( $html );
+
+		// Iterate through all tags in the HTML
+		while ( $processor->next_tag() ) {
+			// Remove the style attribute if it exists
+			if ( $processor->get_attribute( 'style' ) !== null ) {
+				$processor->remove_attribute( 'style' );
+			}
+		}
+
+		return $processor->get_updated_html();
 	}
 
 	// Convert a <div> using its inline CSS.
@@ -36,7 +56,14 @@ class HTML_To_Blocks_Converter extends Base_Block_Converter {
 
 		if ( 'block' === $display ) {
 			$inner = $this->get_sub_blocks( $node->childNodes );
-			return new Block( 'core/group', $attrs, $inner );
+			return new Block(
+				block_name: 'group',
+				attributes: $attrs,
+				content: sprintf(
+					'<div class="wp-block-group">%1$s</div>',
+					$inner
+				),
+			);
 		}
 
 		// Example for future: display:flex -> group with flex layout.
@@ -47,14 +74,21 @@ class HTML_To_Blocks_Converter extends Base_Block_Converter {
 				'orientation' => 'column' === $direction ? 'vertical' : 'horizontal',
 			);
 			$inner           = $this->get_sub_blocks( $node->childNodes );
-			return new Block( 'core/group', $attrs, $inner );
+			return new Block(
+				block_name: 'group',
+				attributes: $attrs,
+				content: sprintf(
+					'<div class="wp-block-group">%1$s</div>',
+					$inner
+				),
+			);
 		}
 
 		// Fallback: emit raw HTML for now.
 		return new Block( 'core/html', array(), Base_Block_Converter::get_node_html( $node ) );
 	}
 
-	// Convert children recursively to blocks (kept from your version).
+	// Convert children recursively to blocks.
 	public function get_sub_blocks( \DOMNodeList $nodes ): string {
 		$blocks = '';
 		foreach ( $nodes as $child ) {
@@ -134,7 +168,6 @@ class HTML_To_Blocks_Converter extends Base_Block_Converter {
 		return $map;
 	}
 
-	// Utilities kept from your original class.
 	public function get_elements_by_class( \DOMElement $element, string $class_name ): \DOMNodeList {
 		$dom = new \DOMDocument();
 		$dom->appendChild( $dom->importNode( $element, true ) );

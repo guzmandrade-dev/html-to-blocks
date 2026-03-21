@@ -50,16 +50,19 @@ class HTML_To_Blocks_Admin {
 		if ( 'tools_page_html2blocks' !== $hook ) {
 			return;
 		}
-		wp_enqueue_script( 'html2blocks-admin', HTML2BLOCKS_URL . 'assets/admin.js', array( 'wp-api-fetch' ), '0.2.0', true );
+		wp_enqueue_script( 'html2blocks-admin', HTML2BLOCKS_URL . 'assets/admin.js', array( 'wp-api-fetch' ), '0.3.0', true );
 		wp_localize_script(
 			'html2blocks-admin',
 			'HTML2BLOCKS_DATA',
 			array(
-				'rest'  => esc_url_raw( rest_url( 'html2blocks/v1/fetch' ) ),
-				'nonce' => wp_create_nonce( 'wp_rest' ),
+				'rest'          => esc_url_raw( rest_url( 'html2blocks/v1/fetch' ) ),
+				'aiBatchStart'  => esc_url_raw( rest_url( 'html2blocks/v1/ai-batch/start' ) ),
+				'aiBatchStatus' => esc_url_raw( rest_url( 'html2blocks/v1/ai-batch/status' ) ),
+				'nonce'         => wp_create_nonce( 'wp_rest' ),
+				'aiAvailable'   => function_exists( 'wp_ai_client_prompt' ),
 			)
 		);
-		wp_enqueue_style( 'html2blocks-admin', HTML2BLOCKS_URL . 'assets/admin.css', array(), '0.2.0' );
+		wp_enqueue_style( 'html2blocks-admin', HTML2BLOCKS_URL . 'assets/admin.css', array(), '0.3.0' );
 	}
 
 	public function render() {
@@ -89,6 +92,16 @@ class HTML_To_Blocks_Admin {
 						<th><label for="h2b-selector">Selector</label></th>
 						<td><input type="text" id="h2b-selector" value="body" /></td>
 					</tr>
+					<tr>
+						<th scope="row">Conversion</th>
+						<td>
+							<label for="h2b-use-ai">
+								<input type="checkbox" id="h2b-use-ai" value="1" />
+								Use WP AI Client instead of the local block converter
+							</label>
+							<p class="description">Requires the WP AI Client and an enabled provider. This plugin defaults to the <code>ollama</code> provider for AI conversion.</p>
+						</td>
+					</tr>
 				</table>
 				<p><button class="button button-primary" type="submit">Fetch</button></p>
 			</form>
@@ -101,6 +114,7 @@ class HTML_To_Blocks_Admin {
 				<p><button id="html2blocks-copy-html" class="button">Copy HTML</button></p>
 
 				<h3>Blocks</h3>
+				<p id="html2blocks-blocks-status" class="description"></p>
 				<textarea id="html2blocks-blocks" readonly style="width:100%;height:200px;font-family:monospace;"></textarea>
 				<p><button id="html2blocks-copy-blocks" class="button">Copy Blocks</button></p>
 			</div>
