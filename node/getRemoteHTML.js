@@ -76,9 +76,9 @@ async function fetchFragment({ url, language = null, selector = 'body' }) {
         throw new Error('Selector not found');
     }
 
-    const tagName = await page.locator(selector).evaluate(el => el.tagName.toLowerCase());
+    // const tagName = await page.locator(selector).evaluate(el => el.tagName.toLowerCase());
     const inner = await page.locator(selector).innerHTML();
-    const fragment = `<${tagName} data-origin-url="${page.url()}">${inner}</${tagName}>`;
+    const fragment = `<span data-origin-url="${page.url()}" />${inner}`;
 
     await browser.close();
     return fragment;
