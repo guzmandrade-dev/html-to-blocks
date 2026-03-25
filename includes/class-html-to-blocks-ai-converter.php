@@ -37,7 +37,7 @@ class HTML_To_Blocks_AI_Converter {
 		$prompt = $prompt
 			->using_provider( $provider )
 			->using_system_instruction( $this->build_system_instruction() )
-			->using_temperature( 0.2 );
+			->using_temperature( 0.1 ); // Lower = more deterministic
 
 		$supported = $prompt->is_supported_for_text_generation();
 		if ( $supported instanceof WP_Error ) {
@@ -56,12 +56,30 @@ class HTML_To_Blocks_AI_Converter {
 			);
 		}
 
-		$timeout_filter = null;
+		$timeout_filter      = null;
+		$http_timeout_filter = null;
+		$http_args_filter    = null;
 		if ( $timeout > 0 ) {
 			$timeout_filter = static function () use ( $timeout ) {
 				return $timeout;
 			};
 			add_filter( 'wp_ai_client_default_request_timeout', $timeout_filter, 10, 0 );
+
+			$http_timeout_filter = static function () use ( $timeout ) {
+				return (float) $timeout;
+			};
+			add_filter( 'http_request_timeout', $http_timeout_filter, 10, 0 );
+
+			$http_args_filter = static function ( array $args, string $url ) use ( $timeout ) {
+				if ( false === strpos( $url, '/api/chat' ) && false === strpos( $url, '/api/generate' ) ) {
+					return $args;
+				}
+
+				$args['timeout'] = (float) $timeout;
+
+				return $args;
+			};
+			add_filter( 'http_request_args', $http_args_filter, 10, 2 );
 		}
 
 		try {
@@ -69,6 +87,14 @@ class HTML_To_Blocks_AI_Converter {
 		} finally {
 			if ( null !== $timeout_filter ) {
 				remove_filter( 'wp_ai_client_default_request_timeout', $timeout_filter, 10 );
+			}
+
+			if ( null !== $http_timeout_filter ) {
+				remove_filter( 'http_request_timeout', $http_timeout_filter, 10 );
+			}
+
+			if ( null !== $http_args_filter ) {
+				remove_filter( 'http_request_args', $http_args_filter, 10 );
 			}
 		}
 
@@ -168,6 +194,10 @@ class HTML_To_Blocks_AI_Converter {
 
 		$first_block = strpos( $markup, '<!-- wp:' );
 		if ( false === $first_block ) {
+			if ( $this->looks_like_html_markup( $markup ) && $this->allow_html_block_fallback() ) {
+				return $this->wrap_as_core_html_block( $markup );
+			}
+
 			return '';
 		}
 
@@ -179,5 +209,28 @@ class HTML_To_Blocks_AI_Converter {
 		}
 
 		return $markup;
+	}
+
+	private function looks_like_html_markup( string $markup ): bool {
+		$markup = trim( $markup );
+
+		if ( '' === $markup ) {
+			return false;
+		}
+
+		return 1 === preg_match( '/<\/?[a-z][^>]*>/i', $markup );
+	}
+
+	private function wrap_as_core_html_block( string $markup ): string {
+		$markup = trim( $markup );
+
+		return sprintf(
+			"<!-- wp:html -->\n%s\n<!-- /wp:html -->",
+			$markup
+		);
+	}
+
+	private function allow_html_block_fallback(): bool {
+		return (bool) apply_filters( 'html2blocks_ai_allow_html_block_fallback', true );
 	}
 }

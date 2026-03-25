@@ -115,6 +115,7 @@ class HTML_To_Blocks_Admin {
 
 				<h3>Blocks</h3>
 				<p id="html2blocks-blocks-status" class="description"></p>
+				<pre id="html2blocks-debug" style="display:none;white-space:pre-wrap;background:#fff5f5;border:1px solid #f0c2c2;padding:10px;max-height:240px;overflow:auto;"></pre>
 				<textarea id="html2blocks-blocks" readonly style="width:100%;height:200px;font-family:monospace;"></textarea>
 				<p><button id="html2blocks-copy-blocks" class="button">Copy Blocks</button></p>
 			</div>

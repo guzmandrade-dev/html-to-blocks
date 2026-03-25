@@ -3,32 +3,70 @@
     const htmlBox = document.getElementById("html2blocks-fragment");
     const blocksBox = document.getElementById("html2blocks-blocks");
     const blocksStatus = document.getElementById("html2blocks-blocks-status");
+    const debugBox = document.getElementById("html2blocks-debug");
     const copyHtmlBtn = document.getElementById("html2blocks-copy-html");
     const copyBlocksBtn = document.getElementById("html2blocks-copy-blocks");
     const useAiCheckbox = document.getElementById("h2b-use-ai");
 
     const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
-    const parseErrorMessage = async (res) => {
+    const createError = (message, debug) => {
+        const error = new Error(message || "Request failed");
+        error.debug = debug;
+        return error;
+    };
+
+    const setDebug = (details) => {
+        if (!debugBox) {
+            return;
+        }
+
+        if (!details) {
+            debugBox.textContent = "";
+            debugBox.style.display = "none";
+            return;
+        }
+
+        debugBox.textContent = typeof details === "string" ? details : JSON.stringify(details, null, 2);
+        debugBox.style.display = "block";
+    };
+
+    const parseErrorFromResponse = async (res) => {
+        let raw = "";
+
         try {
-            const payload = await res.json();
-            if (payload && payload.message) {
-                return payload.message;
-            }
+            raw = await res.text();
         } catch (e) {
-            // Ignore JSON parse errors and fallback to plain text.
+            return createError("Request failed", {
+                status: res.status,
+                statusText: res.statusText,
+                reason: "Unable to read response body",
+            });
         }
 
         try {
-            const text = await res.text();
-            if (text) {
-                return text;
-            }
+            const payload = JSON.parse(raw);
+            const message = payload && payload.message ? payload.message : (raw || "Request failed");
+
+            return createError(message, {
+                status: res.status,
+                statusText: res.statusText,
+                payload,
+            });
         } catch (e) {
-            // Ignore read errors.
+            if (raw) {
+                return createError(raw, {
+                    status: res.status,
+                    statusText: res.statusText,
+                    raw,
+                });
+            }
         }
 
-        return "Request failed";
+        return createError("Request failed", {
+            status: res.status,
+            statusText: res.statusText,
+        });
     };
 
     const runAiBatch = async ({ url, language, selector }) => {
@@ -42,7 +80,7 @@
         });
 
         if (!startRes.ok) {
-            throw new Error(await parseErrorMessage(startRes));
+            throw await parseErrorFromResponse(startRes);
         }
 
         const startData = await startRes.json();
@@ -61,7 +99,7 @@
                 });
 
                 if (!statusRes.ok) {
-                    throw new Error(await parseErrorMessage(statusRes));
+                    throw await parseErrorFromResponse(statusRes);
                 }
 
                 return statusRes.json();
@@ -87,6 +125,7 @@
         htmlBox.textContent = useAi ? "Fetching HTML and generating blocks with AI..." : "Fetching...";
         blocksBox.value = "";
         blocksStatus.textContent = useAi ? "Using WP AI Client." : "Using local block converter.";
+        setDebug("");
         updateCopyState();
 
         const url = document.getElementById("h2b-url").value.trim();
@@ -113,7 +152,9 @@
                     const totalChunks = Number(status.totalChunks || total || 0);
 
                     if (status.status === "failed") {
-                        throw new Error(status.error || "AI batch conversion failed.");
+                        throw createError(status.error || "AI batch conversion failed.", {
+                            batchStatus: status,
+                        });
                     }
 
                     if (totalChunks > 0) {
@@ -131,6 +172,7 @@
                 blocksStatus.textContent = blocksBox.value
                     ? "Blocks ready to copy. Generated with WP AI Client in batches."
                     : "No block output was generated.";
+                setDebug("");
                 updateCopyState();
 
                 copyHtmlBtn.onclick = () => {
@@ -157,7 +199,7 @@
                 headers: { "X-WP-Nonce": HTML2BLOCKS_DATA.nonce },
             });
             if (!res.ok) {
-                throw new Error(await parseErrorMessage(res));
+                throw await parseErrorFromResponse(res);
             }
             const data = await res.json();
 
@@ -169,6 +211,7 @@
                 : data.blocks
                     ? "Blocks ready to copy. Generated with " + (data.conversionMethod === "ai" ? "WP AI Client" : "the local converter") + "."
                     : "No block output was generated.";
+            setDebug(data.blocksError ? data : "");
             updateCopyState();
 
             copyHtmlBtn.onclick = () => {
@@ -190,7 +233,8 @@
         } catch (err) {
             htmlBox.textContent = "Error: " + err.message;
             blocksBox.value = "";
-            blocksStatus.textContent = "";
+            blocksStatus.textContent = "Error: " + (err.message || "Request failed");
+            setDebug(err.debug || err.stack || String(err));
             updateCopyState();
         }
     });

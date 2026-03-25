@@ -41,10 +41,12 @@ class HTML_To_Blocks_AI_Batch_Service {
 			'nextChunk'       => 0,
 			'chunks'          => array_values( $chunks ),
 			'chunkResults'    => array(),
+			'chunkRetries'    => array(),
 			'blocks'          => '',
 			'error'           => '',
 			'context'         => $context,
 			'chunkTimeout'    => $chunk_timeout,
+			'maxChunkRetries' => (int) apply_filters( 'html2blocks_ai_chunk_retry_limit', 4, $html, $context, $options ),
 			'createdAt'       => time(),
 			'updatedAt'       => time(),
 		);
@@ -89,6 +91,18 @@ class HTML_To_Blocks_AI_Batch_Service {
 		$result     = $converter->convert_with_timeout( $chunk_html, $context, (int) $state['chunkTimeout'] );
 
 		if ( is_wp_error( $result ) ) {
+			$recovered = $this->try_subdivide_failed_chunk( $state, $next_chunk, $chunk_html, $result );
+
+			if ( $recovered ) {
+				$state['status']    = 'running';
+				$state['updatedAt'] = time();
+				$this->save_state( $state );
+
+				do_action( 'html2blocks_ai_batch_progress', $state );
+
+				return $this->summarize_state( $state );
+			}
+
 			$state['status']    = 'failed';
 			$state['error']     = sprintf( 'Chunk %1$d failed: %2$s', $next_chunk + 1, $result->get_error_message() );
 			$state['updatedAt'] = time();
@@ -114,6 +128,71 @@ class HTML_To_Blocks_AI_Batch_Service {
 		$this->save_state( $state );
 
 		return $this->summarize_state( $state );
+	}
+
+	private function try_subdivide_failed_chunk( array &$state, int $chunk_index, string $chunk_html, WP_Error $error ): bool {
+		$max_retries = max( 0, (int) ( $state['maxChunkRetries'] ?? 0 ) );
+
+		if ( $max_retries <= 0 || '' === trim( $chunk_html ) ) {
+			return false;
+		}
+
+		$current_retry = (int) ( $state['chunkRetries'][ $chunk_index ] ?? 0 );
+		if ( $current_retry >= $max_retries ) {
+			return false;
+		}
+
+		$current_length = strlen( $chunk_html );
+		if ( $current_length < 1500 ) {
+			return false;
+		}
+
+		$target_size = (int) floor( $current_length / 2 );
+		if ( $target_size < 1000 ) {
+			$target_size = 1000;
+		}
+
+		$chunker    = new HTML_To_Blocks_Chunker();
+		$sub_chunks = $chunker->chunk_html(
+			$chunk_html,
+			array(
+				'maxChars'            => $target_size,
+				'maxChunks'           => 8,
+				'maxSubdivisionDepth' => 8,
+			)
+		);
+
+		$sub_chunks = array_values( array_filter( array_map( 'trim', (array) $sub_chunks ) ) );
+
+		if ( count( $sub_chunks ) <= 1 ) {
+			return false;
+		}
+
+		$head = array_slice( $state['chunks'], 0, $chunk_index );
+		$tail = array_slice( $state['chunks'], $chunk_index + 1 );
+
+		$state['chunks']      = array_merge( $head, $sub_chunks, $tail );
+		$state['totalChunks'] = count( $state['chunks'] );
+
+		$new_retries = array();
+		foreach ( $state['chunkRetries'] as $index => $retry_count ) {
+			if ( $index < $chunk_index ) {
+				$new_retries[ $index ] = (int) $retry_count;
+				continue;
+			}
+
+			if ( $index > $chunk_index ) {
+				$shifted_index                 = $index + count( $sub_chunks ) - 1;
+				$new_retries[ $shifted_index ] = (int) $retry_count;
+			}
+		}
+
+		$new_retries[ $chunk_index ] = $current_retry + 1;
+		$state['chunkRetries']       = $new_retries;
+
+		do_action( 'html2blocks_ai_chunk_retried', $state, $chunk_index, $error, $sub_chunks );
+
+		return true;
 	}
 
 	public function get_batch( string $batch_id ) {
