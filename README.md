@@ -4,6 +4,7 @@ Fetches a remote HTML fragment (including computed styles via Playwright) and re
 
 ## Requirements
 
+- **WordPress 7.0 or later** — required for the AI conversion features (WordPress AI client APIs).
 - Node.js installed on the server/environment
 - Install Node dependencies for the plugin service:
 
@@ -13,6 +14,13 @@ npm install
 ```
 
 ## Local development (`wp-env`)
+
+> **WordPress 7.0 / Beta requirement**
+> The AI conversion features require WordPress 7.0. Since 7.0 is not yet released, you need to run a beta build.
+>
+> The `.wp-env.json` in this repository already includes the [WordPress Beta Tester](https://wordpress.org/plugins/wordpress-beta-tester/) plugin. After starting wp-env, go to **Tools > Beta Testing** and select **Beta/RC** (or **Bleeding edge nightly**) to switch Core to the latest beta.
+>
+> If you are **not** using `wp-env`, ensuring the correct WordPress version installed is your responsibility.
 
 `.wp-env.json` defines how the local server environment is set up for this plugin.
 
