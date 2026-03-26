@@ -67,10 +67,41 @@ BIND_HOST=0.0.0.0 PORT=3001 npm start --prefix node
 
 ## REST API
 
+### Fetch Endpoint
+
 **Endpoint**
 
-`GET /wp-json/html2blocks/v1/fetch?url=...&selector=main&language=es`
+`GET /wp-json/html2blocks/v1/fetch`
 
 **Auth**
 
 Must be a logged-in user with `edit_posts` capability.
+
+**Parameters**
+
+- `url` (required, string): The URL to fetch and convert.
+- `selector` (optional, string): CSS selector to extract. Defaults to `body`.
+- `language` (optional, string): Language code for content. Defaults to auto-detect.
+- `use_ai` (optional, boolean-like): Use AI conversion (`1`, `true`, `yes`, `on`) instead of local DOM converter. Defaults to `false`.
+
+**Examples**
+
+Local DOM converter (default):
+```
+GET /wp-json/html2blocks/v1/fetch?url=https://example.com&selector=.main&language=en
+```
+
+AI-assisted conversion:
+```
+GET /wp-json/html2blocks/v1/fetch?url=https://example.com&selector=.main&language=en&use_ai=true
+```
+
+**Response Fields**
+
+- `html`: The raw HTML extracted from the source URL.
+- `blocks`: The converted WordPress block markup.
+- `blocksError`: Error message (if conversion failed).
+- `conversionMethod`: Either `converter` or `ai` (shows which method was used).
+- `sourceUrl`: The source URL used.
+- `selector`: The CSS selector applied.
+- `language`: The language code processed.
