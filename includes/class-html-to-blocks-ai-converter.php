@@ -1,50 +1,74 @@
 <?php
 if ( ! defined( 'ABSPATH' ) ) {
-	exit;
+	exit();
 }
 
 class HTML_To_Blocks_AI_Converter {
+
 	public function convert( string $html, array $context = array() ) {
-		$timeout = isset( $context['chunkTimeout'] ) ? (int) $context['chunkTimeout'] : 0;
+		$timeout = isset( $context['chunkTimeout'] )
+			? (int) $context['chunkTimeout']
+			: 0;
 
 		if ( $timeout <= 0 ) {
-			$timeout = (int) apply_filters( 'html2blocks_ai_request_timeout', 30, $html, $context );
+			$timeout = (int) apply_filters(
+				'html2blocks_ai_request_timeout',
+				30,
+				$html,
+				$context,
+			);
 		}
 
 		return $this->convert_with_timeout( $html, $context, $timeout );
 	}
 
-	public function convert_with_timeout( string $html, array $context = array(), int $timeout = 30 ) {
+	public function convert_with_timeout(
+		string $html,
+		array $context = array(),
+		int $timeout = 30,
+	) {
 		if ( ! function_exists( 'wp_ai_client_prompt' ) ) {
 			return new WP_Error(
 				'html2blocks_ai_client_missing',
 				'WP AI Client is not available. Activate the AI Client plugin before using AI conversion.',
-				array( 'status' => 500 )
+				array( 'status' => 500 ),
 			);
 		}
 
-		$provider = (string) apply_filters( 'html2blocks_ai_provider', 'ollama', $html, $context );
-		$prompt   = wp_ai_client_prompt( $this->build_user_prompt( $html, $context ) );
+		$provider = (string) apply_filters(
+			'html2blocks_ai_provider',
+			'ollama',
+			$html,
+			$context,
+		);
+		$prompt   = wp_ai_client_prompt(
+			$this->build_user_prompt( $html, $context ),
+		);
 
 		if ( ! is_object( $prompt ) ) {
 			return new WP_Error(
 				'html2blocks_ai_prompt_unavailable',
 				'Unable to initialize the WP AI Client prompt builder.',
-				array( 'status' => 500 )
+				array( 'status' => 500 ),
 			);
 		}
 
 		$prompt = $prompt
 			->using_provider( $provider )
+			->using_model_preference(
+				'qwen3-coder-next:cloud',
+				'gemma4:31b-cloud',
+				'qwen3.5:cloud',
+			)
 			->using_system_instruction( $this->build_system_instruction() )
-			->using_temperature( 0.1 ); // Lower = more deterministic
+			->using_temperature( 0 ); // Lower = more deterministic
 
 		$supported = $prompt->is_supported_for_text_generation();
 		if ( $supported instanceof WP_Error ) {
 			return new WP_Error(
 				'html2blocks_ai_support_error',
 				$supported->get_error_message(),
-				array( 'status' => 500 )
+				array( 'status' => 500 ),
 			);
 		}
 
@@ -52,7 +76,7 @@ class HTML_To_Blocks_AI_Converter {
 			return new WP_Error(
 				'html2blocks_ai_unsupported',
 				'No supported AI text-generation model is configured for the selected provider.',
-				array( 'status' => 500 )
+				array( 'status' => 500 ),
 			);
 		}
 
@@ -63,15 +87,28 @@ class HTML_To_Blocks_AI_Converter {
 			$timeout_filter = static function () use ( $timeout ) {
 				return $timeout;
 			};
-			add_filter( 'wp_ai_client_default_request_timeout', $timeout_filter, 10, 0 );
+			add_filter(
+				'wp_ai_client_default_request_timeout',
+				$timeout_filter,
+				10,
+				0,
+			);
 
 			$http_timeout_filter = static function () use ( $timeout ) {
 				return (float) $timeout;
 			};
 			add_filter( 'http_request_timeout', $http_timeout_filter, 10, 0 );
 
-			$http_args_filter = static function ( array $args, string $url ) use ( $timeout ) {
-				if ( false === strpos( $url, '/api/chat' ) && false === strpos( $url, '/api/generate' ) ) {
+			$http_args_filter = static function (
+				array $args,
+				string $url
+			) use (
+				$timeout,
+			) {
+				if (
+					false === strpos( $url, '/api/chat' ) &&
+					false === strpos( $url, '/api/generate' )
+				) {
 					return $args;
 				}
 
@@ -86,7 +123,11 @@ class HTML_To_Blocks_AI_Converter {
 			$result = $prompt->generate_text();
 		} finally {
 			if ( null !== $timeout_filter ) {
-				remove_filter( 'wp_ai_client_default_request_timeout', $timeout_filter, 10 );
+				remove_filter(
+					'wp_ai_client_default_request_timeout',
+					$timeout_filter,
+					10,
+				);
 			}
 
 			if ( null !== $http_timeout_filter ) {
@@ -102,7 +143,7 @@ class HTML_To_Blocks_AI_Converter {
 			return new WP_Error(
 				'html2blocks_ai_failed',
 				$result->get_error_message(),
-				array( 'status' => 500 )
+				array( 'status' => 500 ),
 			);
 		}
 
@@ -112,7 +153,7 @@ class HTML_To_Blocks_AI_Converter {
 			return new WP_Error(
 				'html2blocks_ai_invalid_response',
 				'The AI response did not contain serialized Gutenberg block markup.',
-				array( 'status' => 500 )
+				array( 'status' => 500 ),
 			);
 		}
 
@@ -145,9 +186,15 @@ class HTML_To_Blocks_AI_Converter {
 			'- Use minimal core/html fallbacks only when necessary.',
 			'- Do not omit content.',
 		);
-		$url      = isset( $context['sourceUrl'] ) ? trim( (string) $context['sourceUrl'] ) : '';
-		$selector = isset( $context['selector'] ) ? trim( (string) $context['selector'] ) : '';
-		$language = isset( $context['language'] ) ? trim( (string) $context['language'] ) : '';
+		$url      = isset( $context['sourceUrl'] )
+			? trim( (string) $context['sourceUrl'] )
+			: '';
+		$selector = isset( $context['selector'] )
+			? trim( (string) $context['selector'] )
+			: '';
+		$language = isset( $context['language'] )
+			? trim( (string) $context['language'] )
+			: '';
 
 		if ( '' !== $url || '' !== $selector || '' !== $language ) {
 			$lines[] = '';
@@ -163,8 +210,12 @@ class HTML_To_Blocks_AI_Converter {
 			}
 		}
 
-		$chunk_index = isset( $context['chunkIndex'] ) ? (int) $context['chunkIndex'] : 0;
-		$chunk_total = isset( $context['chunkTotal'] ) ? (int) $context['chunkTotal'] : 0;
+		$chunk_index = isset( $context['chunkIndex'] )
+			? (int) $context['chunkIndex']
+			: 0;
+		$chunk_total = isset( $context['chunkTotal'] )
+			? (int) $context['chunkTotal']
+			: 0;
 
 		if ( $chunk_index > 0 && $chunk_total > 0 ) {
 			$lines[] = '';
@@ -181,20 +232,29 @@ class HTML_To_Blocks_AI_Converter {
 			'html2blocks_ai_prompt',
 			implode( "\n", $lines ),
 			$html,
-			$context
+			$context,
 		);
 	}
 
 	private function normalize_response( string $response ): string {
 		$markup = trim( $response );
 
-		if ( preg_match( '/```(?:html|text|txt|markdown)?\s*(.*?)```/is', $markup, $matches ) ) {
+		if (
+			preg_match(
+				'/```(?:html|text|txt|markdown)?\s*(.*?)```/is',
+				$markup,
+				$matches,
+			)
+		) {
 			$markup = trim( $matches[1] );
 		}
 
 		$first_block = strpos( $markup, '<!-- wp:' );
 		if ( false === $first_block ) {
-			if ( $this->looks_like_html_markup( $markup ) && $this->allow_html_block_fallback() ) {
+			if (
+				$this->looks_like_html_markup( $markup ) &&
+				$this->allow_html_block_fallback()
+			) {
 				return $this->wrap_as_core_html_block( $markup );
 			}
 
@@ -224,13 +284,13 @@ class HTML_To_Blocks_AI_Converter {
 	private function wrap_as_core_html_block( string $markup ): string {
 		$markup = trim( $markup );
 
-		return sprintf(
-			"<!-- wp:html -->\n%s\n<!-- /wp:html -->",
-			$markup
-		);
+		return sprintf( "<!-- wp:html -->\n%s\n<!-- /wp:html -->", $markup );
 	}
 
 	private function allow_html_block_fallback(): bool {
-		return (bool) apply_filters( 'html2blocks_ai_allow_html_block_fallback', true );
+		return (bool) apply_filters(
+			'html2blocks_ai_allow_html_block_fallback',
+			true,
+		);
 	}
 }

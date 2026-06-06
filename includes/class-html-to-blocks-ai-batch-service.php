@@ -30,7 +30,7 @@ class HTML_To_Blocks_AI_Batch_Service {
 		$batch_id      = function_exists( 'wp_generate_uuid4' ) ? wp_generate_uuid4() : uniqid( 'html2blocks_', true );
 		$chunk_timeout = isset( $options['chunkTimeout'] ) ? (int) $options['chunkTimeout'] : 0;
 		if ( $chunk_timeout <= 0 ) {
-			$chunk_timeout = (int) apply_filters( 'html2blocks_ai_chunk_timeout', 60, $html, $context );
+			$chunk_timeout = (int) apply_filters( 'html2blocks_ai_chunk_timeout', 120, $html, $context );
 		}
 
 		$state = array(

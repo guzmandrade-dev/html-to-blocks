@@ -2,10 +2,6 @@
     "$schema": "https://schemas.wp.org/trunk/wp-env.json",
     "testsEnvironment": false,
     "phpVersion": "8.3",
-    "plugins": [
-        "https://downloads.wordpress.org/plugin/wordpress-beta-tester.zip",
-        "guzmandrade-dev/ai-provider-for-ollama"
-    ],
     "mappings": {
         "wp-content/plugins/html-to-blocks": "."
     },
